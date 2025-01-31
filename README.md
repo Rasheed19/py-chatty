@@ -7,7 +7,8 @@ It supports both ordinay chat and RAG (chat with your upoaded PDF(s) for now!).
 1. Install ollama from [here](https://ollama.com/). Currently, py-chatty include two llms: `deepseek-r1:1.5b` and `llama3.2:1b`; two ollama embeddings: `nomic-embed-text` and `mxbai-embed-large`. You can, of course, add new models/embeddings from ollama website and modify `shared/defns.py` to reflect this. It is up to you!
 
 1. Clone this repo and create a virtual environment and activate it. Install the app dependencies by running
-    ```pip install -r requirements.txt
+    ```
+    pip install -r requirements.txt
     ```
 1. You might need to start ollama server locally by running for one the downloaded models:
     ```
