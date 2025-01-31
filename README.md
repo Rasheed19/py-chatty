@@ -22,5 +22,5 @@ It supports both ordinay chat and RAG (chat with your upoaded PDF(s) for now!).
 1. Add functionality to load other document source (.txt, .docx, web contents, etc)
 1. And more ... stay tuned
 
-## Contributin
+## Contribution
 Want to contribute? Add your skills or ideas in the contribution section. Whether it's a pull request or an issue... we'd love to hear from you!
