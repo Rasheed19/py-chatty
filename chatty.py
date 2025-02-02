@@ -2,7 +2,7 @@ import ollama
 from shiny import App, Inputs, Outputs, Session, reactive, render, ui
 from shiny.types import FileInfo
 
-from shared.defns import ChatMode, Embedding, Model
+from shared.defns import ChatMode, Embedding, FileType, Model
 from shared.rag import (
     create_chain,
     create_database,
@@ -93,26 +93,42 @@ def server(input: Inputs, output: Outputs, session: Session):
             ui.update_task_button("process", state="ready")
 
         else:
-            paths = [file["datapath"] for file in files]
+            invalid_docs = []
+            for file in files:
+                ftype = file["name"].split(".")[-1]
+                if ftype not in FileType:
+                    invalid_docs.append(file["name"])
 
-            text = load_pdf(paths=paths)
+            if invalid_docs:
+                ui.modal_show(
+                    ui.modal(
+                        f"Wrong file(s) chosen. {', '.join(invalid_docs)} is/are not supported. "
+                        f"Supported doc types are {', '.join(FileType)}.",
+                        title="Oops! Something went wrong",
+                    )
+                )
+                ui.update_task_button("process", state="ready")
+            else:
+                paths = [file["datapath"] for file in files]
 
-            chunks = split_text(text=text)
+                text = load_pdf(paths=paths)
 
-            embedding = create_embedding(model=Embedding.NOMIC)
+                chunks = split_text(text=text)
 
-            db = create_database(chunks=chunks, embedding=embedding)
+                embedding = create_embedding(model=Embedding.NOMIC)
 
-            llm, retriever = create_retrieval(model=input.model(), db=db)
+                db = create_database(chunks=chunks, embedding=embedding)
 
-            chain.set(create_chain(llm=llm, retriever=retriever))
+                llm, retriever = create_retrieval(model=input.model(), db=db)
 
-            ui.notification_show(
-                "Files processed and embedded. You can start chatting with them!",
-                duration=5,
-            )
+                chain.set(create_chain(llm=llm, retriever=retriever))
 
-            ui.update_task_button("process", state="ready")
+                ui.notification_show(
+                    "Files processed and embedded. You can start chatting with them!",
+                    duration=5,
+                )
+
+                ui.update_task_button("process", state="ready")
 
     @reactive.calc
     def update_chain():

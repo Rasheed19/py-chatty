@@ -1,4 +1,4 @@
-from enum import StrEnum
+from enum import StrEnum, auto
 
 
 class ChatMode(StrEnum):
@@ -14,3 +14,7 @@ class Model(StrEnum):
 class Embedding(StrEnum):
     NOMIC = "nomic-embed-text"
     MXBAI = "mxbai-embed-large"
+
+
+class FileType(StrEnum):
+    PDF = auto()
