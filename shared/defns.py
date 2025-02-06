@@ -1,4 +1,4 @@
-from enum import StrEnum, auto
+from enum import IntEnum, StrEnum, auto
 
 
 class ChatMode(StrEnum):
@@ -16,5 +16,21 @@ class Embedding(StrEnum):
     MXBAI = "mxbai-embed-large"
 
 
+# TODO: add more file types
 class FileType(StrEnum):
+    TXT = auto()
     PDF = auto()
+    DOCX = auto()
+    CSV = auto()
+
+
+class DocSplitterDefaultArgs(IntEnum):
+    CHUNK_SIZE = 1000
+    CHUNK_OVERLAP = 200
+
+
+CHROMA_DB_PERSISTENT_DIR = "./db"
+NOTIFICATION_DURATION = None
+
+type Error = str | None
+type Success = str
