@@ -1,7 +1,7 @@
 import faicons as fa
 from shiny import ui
 
-from shared.defns import DocSplitterDefaultArgs, Embedding, FileType
+from shared.defns import DocSplitterDefaultArgs, FileType
 
 
 # TODO: move this to views.py??
@@ -24,13 +24,35 @@ def restrict_width(
     return ui.div(*args, {"class": cls}, {"class": f"py-{pad_y}"}, **kwargs)
 
 
+def no_selected_collection_message(duration: int) -> None:
+    ui.notification_show(
+        "No collection is selected. Please select or create a collection",
+        duration=duration,
+        type="error",
+    )
+
+
 def create_collection_button(message: str):
     return ui.card(
         ui.card_header(message),
-        ui.input_action_button(
-            id="goto_create_collection",
-            label="Create collection",
-            # class_="btn btn-primary",
+        ui.row(
+            ui.column(
+                6,
+                ui.input_action_button(
+                    id="goto_create_collection",
+                    label="Create a new collection",
+                    # class_="btn btn-primary",
+                ),
+            ),
+            ui.column(
+                6,
+                ui.input_task_button(
+                    id="use_as_context",
+                    label="Use collection for contex",
+                    auto_reset=False,
+                    # class_="btn btn-primary",
+                ),
+            ),
         ),
     )
 
@@ -59,7 +81,7 @@ def create_collection_modal() -> ui.Tag:
     )
 
 
-def create_desc_value_box(name: str, description: str) -> ui.Tag:
+def create_desc_value_box(desc_text_ui: ui.Tag) -> ui.Tag:
     gear_fill = ui.HTML(
         '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-gear-fill" viewBox="0 0 16 16"><path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/></svg>'
     )
@@ -93,9 +115,7 @@ def create_desc_value_box(name: str, description: str) -> ui.Tag:
         ui.row(
             ui.column(
                 10,
-                ui.markdown(f"# {name}"),
-                ui.markdown(description),
-                theme="text-blue",
+                desc_text_ui,
             ),
             ui.column(2, fa.icon_svg("book", height="50px", width="50px")),
         ),
@@ -113,7 +133,7 @@ def create_doc_add_modal(collection_name: str):
 
     options_ui = ui.row(
         ui.column(
-            3,
+            6,
             ui.input_numeric(
                 id="splitter_chunk_size",
                 label="Chunk size",
@@ -122,21 +142,12 @@ def create_doc_add_modal(collection_name: str):
             ),
         ),
         ui.column(
-            4,
+            6,
             ui.input_numeric(
                 id="splitter_chunk_overlap",
                 label="Chunk overlap",
                 value=DocSplitterDefaultArgs.CHUNK_OVERLAP,
                 min=1,
-            ),
-        ),
-        ui.column(
-            5,
-            ui.input_select(
-                id="ollama_embedding_name",
-                label="Embedding",
-                choices=[e for e in Embedding],
-                selected=Embedding.NOMIC,
             ),
         ),
     )
@@ -147,11 +158,6 @@ def create_doc_add_modal(collection_name: str):
         auto_reset=False,
         # class_="btn btn-primary",
     )
-
-    #     ui.input_task_button(
-    #         id="process", label="Process and embed PDF(s)", auto_reset=False
-    #     ),
-    # )
 
     return ui.modal(
         upload_ui,

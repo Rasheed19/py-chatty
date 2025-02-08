@@ -1,13 +1,15 @@
 import uuid
 from dataclasses import asdict, dataclass
 from datetime import datetime
+from typing import Iterator
 
 import chromadb
+import ollama
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from langchain_ollama import OllamaEmbeddings
 
-from shared.defns import CHROMA_DB_PERSISTENT_DIR, Error
+from shared.defns import CHROMA_DB_PERSISTENT_DIR, OLLAMA_EMBEDDING_NAME, Error
 
 
 @dataclass(frozen=True)
@@ -78,7 +80,6 @@ class CollectionClient:
         self,
         collection_name: str,
         documents: list[str | Document],
-        ollama_embedding_name: str,
         description: str | None,
     ) -> Error:
         # since our documents will be a list of chunks obtained from a text splitter; it is
@@ -105,7 +106,7 @@ class CollectionClient:
         db = Chroma(
             client=self.client,
             collection_name=collection_name,
-            embedding_function=OllamaEmbeddings(model=ollama_embedding_name),
+            embedding_function=OllamaEmbeddings(model=OLLAMA_EMBEDDING_NAME),
         )
 
         try:
@@ -153,3 +154,8 @@ class CollectionClient:
         ), None
 
     # TODO: find a way of updating
+
+
+def stream_response(response: Iterator[ollama.ChatResponse]):
+    for chunk in response:
+        yield chunk.message.content

@@ -1,19 +1,10 @@
 from enum import IntEnum, StrEnum, auto
 
 
-class ChatMode(StrEnum):
-    ORDINARY = "Ordinary"
-    RAG = "RAG"
-
-
+# TODO: add more light-weight ollama models
 class Model(StrEnum):
     DEEPSEEK = "deepseek-r1:1.5b"
     LLAMA = "llama3.2:1b"
-
-
-class Embedding(StrEnum):
-    NOMIC = "nomic-embed-text"
-    MXBAI = "mxbai-embed-large"
 
 
 # TODO: add more file types
@@ -29,8 +20,11 @@ class DocSplitterDefaultArgs(IntEnum):
     CHUNK_OVERLAP = 200
 
 
+OLLAMA_EMBEDDING_NAME = (
+    "nomic-embed-text"  # FIXME: change this to standard embedding; maybe NOMIC??
+)
 CHROMA_DB_PERSISTENT_DIR = "./db"
-NOTIFICATION_DURATION = None
+NOTIFICATION_DURATION = 5
 
 type Error = str | None
 type Success = str
