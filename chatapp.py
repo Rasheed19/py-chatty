@@ -49,7 +49,7 @@ def server(input: Inputs, output: Outputs, session: Session):
 
     @chat.on_user_submit
     async def _():
-        # TODO: not that the messages keep track of all messages: both question and response;
+        # TODO: note that the messages keep track of all messages: both question and response;
         # this might be an issue of memory and context: find a way of truncating messages down to
         # top n chat history or use token_limits below
         messages = chat.messages(format=MessageFormat.OLLAMA, token_limits=None)
