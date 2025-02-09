@@ -1,7 +1,7 @@
 import ollama
 from shiny import App, Inputs, Outputs, Session, render, ui
 
-from shared.defns import Model
+from shared.defns import MessageFormat, Model
 from shared.utils import stream_response
 from shared.views import restrict_width
 
@@ -49,7 +49,10 @@ def server(input: Inputs, output: Outputs, session: Session):
 
     @chat.on_user_submit
     async def _():
-        messages = chat.messages(format="ollama")
+        # TODO: not that the messages keep track of all messages: both question and response;
+        # this might be an issue of memory and context: find a way of truncating messages down to
+        # top n chat history or use token_limits below
+        messages = chat.messages(format=MessageFormat.OLLAMA, token_limits=None)
 
         response = ollama.chat(
             model=input.model(),

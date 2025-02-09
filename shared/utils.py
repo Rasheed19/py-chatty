@@ -1,12 +1,18 @@
 import uuid
 from dataclasses import asdict, dataclass
 from datetime import datetime
-from typing import Iterator
+from typing import Any, Iterator
 
 import chromadb
 import ollama
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
+from langchain_core.messages import (
+    AIMessage,
+    BaseMessage,
+    HumanMessage,
+    trim_messages,
+)
 from langchain_ollama import OllamaEmbeddings
 
 from shared.defns import CHROMA_DB_PERSISTENT_DIR, OLLAMA_EMBEDDING_NAME, Error
@@ -28,6 +34,7 @@ class CollectionMetadata:
     tag: str | None = None
 
 
+# TODO: add delete/update docs
 class CollectionClient:
     def __init__(self):
         self.client = chromadb.PersistentClient(path=CHROMA_DB_PERSISTENT_DIR)
@@ -84,10 +91,6 @@ class CollectionClient:
     ) -> Error:
         # since our documents will be a list of chunks obtained from a text splitter; it is
         # necessary to have a single tag for all the documents in the list.
-        # collection, err = self.get_collection(name=collection_name)
-        # if err is not None:
-        #     return f"Error fetching collection with name {collection_name}. More info: {err}"
-
         uuids = [str(uuid.uuid4()) for _ in range(len(documents))]
         metadata = asdict(
             CollectionMetadata(
@@ -96,10 +99,6 @@ class CollectionClient:
                 tag=f"document-{str(uuid.uuid4())}-{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}",
             )
         )  # here, this metadata is tagged to the whole docs
-
-        # _ = collection.add(
-        #     documents=documents, ids=uuids, metadatas=[metadata] * len(documents), embeddings=embedding_functions.OllamaEmbeddingFunction(model_name=model_name)
-        # )
 
         # chroma object from langchain is used here because documents is of type lanchain Document;
         # it will also integrate with retriever well
@@ -153,9 +152,35 @@ class CollectionClient:
             num_chunks=collection.count(),
         ), None
 
-    # TODO: find a way of updating
 
-
-def stream_response(response: Iterator[ollama.ChatResponse]):
+def stream_response(response: Iterator[ollama.ChatResponse | Any], rag: bool = False):
     for chunk in response:
-        yield chunk.message.content
+        if rag:
+            # chain from langchain output user qn and context (or ref) as part of stream, filter them out
+            if "answer" in chunk:
+                yield chunk["answer"]
+
+        else:
+            yield chunk.message.content
+
+
+def format_chat_history(
+    human_msg_content: str, ai_msg_content: str
+) -> list[BaseMessage]:
+    return [HumanMessage(human_msg_content), AIMessage(ai_msg_content)]
+
+
+def trim_chat_history(
+    chat_history: list[BaseMessage], max_token: int
+) -> list[BaseMessage]:
+    selected_messages = trim_messages(
+        chat_history,
+        token_counter=len,
+        max_tokens=max_token,
+        strategy="last",
+        start_on="human",
+        include_system=True,
+        allow_partial=False,
+    )
+
+    return selected_messages

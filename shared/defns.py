@@ -20,11 +20,13 @@ class DocSplitterDefaultArgs(IntEnum):
     CHUNK_OVERLAP = 200
 
 
-OLLAMA_EMBEDDING_NAME = (
-    "nomic-embed-text"  # FIXME: change this to standard embedding; maybe NOMIC??
-)
+class MessageFormat(StrEnum):
+    OLLAMA = auto()
+    LANGCHAIN = auto()
+
+
+OLLAMA_EMBEDDING_NAME = "nomic-embed-text"
 CHROMA_DB_PERSISTENT_DIR = "./db"
 NOTIFICATION_DURATION = 5
 
 type Error = str | None
-type Success = str

@@ -4,7 +4,7 @@ from shiny import App, Inputs, Outputs, Session, reactive, render, ui
 from shiny.types import FileInfo
 
 from shared import views
-from shared.defns import NOTIFICATION_DURATION, FileType, Model
+from shared.defns import NOTIFICATION_DURATION, FileType, MessageFormat, Model
 from shared.rag import (
     create_chain,
     create_retrieval,
@@ -12,12 +12,13 @@ from shared.rag import (
     split_docs,
     validate_splitter_args,
 )
-from shared.utils import CollectionClient, CollectionDescription
+from shared.utils import CollectionClient, CollectionDescription, stream_response
 
 side_bar = ui.sidebar(
+    views.create_help_pannel(),
     ui.input_select(
         id="model",
-        label="Choose a model to use:",
+        label="Choose a model to use",
         choices=[m for m in Model],
         selected=Model.LLAMA,
         multiple=False,
@@ -25,11 +26,14 @@ side_bar = ui.sidebar(
     ),
     ui.output_ui("collection_handler"),
     views.create_desc_value_box(ui.output_ui("desc_text_handler")),
-    views.create_collection_button(
-        message="You don't have any collection yet. Please create one by clicking on the button below.",
+    ui.input_task_button(
+        id="set_params",
+        label="Set parameters & start chatting",
+        auto_reset=False,
+        class_="btn btn-primary",
     ),
     ui.input_dark_mode(mode="dark"),
-    width=500,
+    width=600,
     id="sidebar",
 )
 app_ui = ui.page_sidebar(
@@ -39,7 +43,7 @@ app_ui = ui.page_sidebar(
         id="chat",
         width="50%",
     ),
-    title="Chatty",
+    title="Ragapp",
     fillable=True,
     fillable_mobile=True,
 )
@@ -47,10 +51,9 @@ app_ui = ui.page_sidebar(
 
 def server(input: Inputs, output: Outputs, session: Session):
     chat = ui.Chat(id="chat", on_error="sanitize")
+    client_obj = CollectionClient()
 
     chain = reactive.Value()
-
-    client_obj = CollectionClient()
 
     collection_list = reactive.Value(client_obj.list_collections())
 
@@ -70,7 +73,7 @@ def server(input: Inputs, output: Outputs, session: Session):
     def title_handler():
         return views.restrict_width(
             ui.h1(
-                "Hey, I'm Chatty! What can I help with?",
+                "Hey, I'm Ragapp! What can I help with?",
                 # class_="text-lg-center text-left",
             ),
             # sm=10,
@@ -84,13 +87,15 @@ def server(input: Inputs, output: Outputs, session: Session):
             desc = collection_desc()
             return ui.markdown(f"""
                     # {desc.name}
-                    - *Description*: {desc.description}
-                    - *Date created*: {desc.date_created}
-                    - *Tag*: {desc.tag}
-                    - *Number of documents or chunks*: {desc.num_chunks}
+                    - **Description**: {desc.description}
+                    - **Date created**: {desc.date_created}
+                    - **Tag**: {desc.tag}
+                    - **Number of documents or chunks**: {desc.num_chunks}
                     """)
 
-        return "You don't have any collection yet. Please create one by clicking on the button below."
+        return ui.markdown(
+            "You don't have any collection yet. Please create one by clicking on the **Create collection** button below."
+        )
 
     @reactive.effect
     @reactive.event(input.goto_add_document)
@@ -106,19 +111,33 @@ def server(input: Inputs, output: Outputs, session: Session):
     @reactive.event(input.goto_delete_collection)
     def _():
         if collection_list():
-            err = client_obj.delete_collection(input.collection())
-            if err is not None:
-                ui.notification_show(
-                    err,
-                    type="error",
-                    duration=NOTIFICATION_DURATION,
-                )
-            else:
-                time.sleep(2)
-                collection_list.set(client_obj.list_collections())
-                ui.update_select(id="collection", choices=collection_list())
+            ui.modal_show(views.create_del_collection_modal(input.collection()))
         else:
             views.no_selected_collection_message(duration=NOTIFICATION_DURATION)
+
+    @reactive.effect
+    @reactive.event(input.delete_collection)
+    def _():
+        err = client_obj.delete_collection(input.collection())
+        time.sleep(2)
+
+        if err is not None:
+            ui.notification_show(
+                err,
+                type="error",
+                duration=NOTIFICATION_DURATION,
+            )
+        else:
+            collection_list.set(client_obj.list_collections())
+            ui.update_select(id="collection", choices=collection_list())
+
+            ui.notification_show(
+                f"{input.collection()} deleted successfully.",
+                type="message",
+                duration=NOTIFICATION_DURATION,
+            )
+
+            ui.modal_remove()
 
     @reactive.effect
     @reactive.event(input.goto_create_collection)
@@ -237,7 +256,7 @@ def server(input: Inputs, output: Outputs, session: Session):
                     ui.update_task_button("add_document", state="ready")
 
     @reactive.effect
-    @reactive.event(input.use_as_context)
+    @reactive.event(input.set_params)
     def _():
         if collection_list():
             desc = collection_desc()
@@ -247,26 +266,27 @@ def server(input: Inputs, output: Outputs, session: Session):
                     duration=NOTIFICATION_DURATION,
                     type="error",
                 )
-                ui.update_task_button("use_as_context", state="ready")
+                ui.update_task_button("set_params", state="ready")
 
             else:
-                llm, retriever = create_retrieval(
-                    model=input.model(),
+                retriever = create_retrieval(
                     client=client_obj.client,
                     collection_name=input.collection(),
                 )
-                chain.set(create_chain(llm=llm, retriever=retriever))
+                chain.set(
+                    create_chain(ollama_model_name=input.model(), retriever=retriever)
+                )
 
                 time.sleep(2)
                 ui.notification_show(
-                    f"Collection {desc.name} is set as context. Enjoy chatting with chatty!",
+                    f"Collection {desc.name} is set as context. Enjoy chatting with Ragapp!",
                     duration=NOTIFICATION_DURATION,
                 )
-                ui.update_task_button("use_as_context", state="ready")
+                ui.update_task_button("set_params", state="ready")
 
         else:
             views.no_selected_collection_message(duration=NOTIFICATION_DURATION)
-            ui.update_task_button("use_as_context", state="ready")
+            ui.update_task_button("set_params", state="ready")
 
     @reactive.effect
     def _():
@@ -280,14 +300,21 @@ def server(input: Inputs, output: Outputs, session: Session):
 
     @chat.on_user_submit
     async def _():
-        messages = chat.messages(format="ollama")
+        # TODO: add token limits to narrow down chat history and what is passed to llm
+        messages = chat.messages(format=MessageFormat.LANGCHAIN, token_limits=None)
 
         curr_chain = chain()
-        response = curr_chain.stream(messages[0].content)
 
-        response = (chunk for chunk in response)
+        # messages contain all chat history; grab the current user query
+        query = messages[-1].content
+        response = curr_chain.stream(
+            {
+                "input": query,
+                "chat_history": list(messages),
+            }
+        )
 
-        await chat.append_message_stream(response)
+        await chat.append_message_stream(stream_response(response=response, rag=True))
 
 
 app = App(app_ui, server)
