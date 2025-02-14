@@ -4,7 +4,7 @@ from shiny import App, Inputs, Outputs, Session, reactive, render, ui
 from shiny.types import FileInfo
 
 from shared import views
-from shared.defns import NOTIFICATION_DURATION, FileType, MessageFormat, Model
+from shared.defns import NOTIFICATION_DURATION, FileType, MessageFormat
 from shared.rag import (
     create_chain,
     create_retrieval,
@@ -16,15 +16,9 @@ from shared.utils import CollectionClient, CollectionDescription, stream_respons
 
 side_bar = ui.sidebar(
     views.create_help_pannel(),
-    ui.input_select(
-        id="model",
-        label="Choose a model to use",
-        choices=[m for m in Model],
-        selected=Model.LLAMA,
-        multiple=False,
-        selectize=True,
-    ),
+    views.create_llm_select(),
     ui.output_ui("collection_handler"),
+    views.create_temp_slider(),
     views.create_desc_value_box(ui.output_ui("desc_text_handler")),
     ui.input_task_button(
         id="set_params",
@@ -33,7 +27,7 @@ side_bar = ui.sidebar(
         class_="btn btn-primary",
     ),
     ui.input_dark_mode(mode="dark"),
-    width=600,
+    width=500,
     id="sidebar",
 )
 app_ui = ui.page_sidebar(
@@ -61,13 +55,7 @@ def server(input: Inputs, output: Outputs, session: Session):
 
     @render.ui
     def collection_handler():
-        return ui.input_select(
-            id="collection",
-            label="Choose or search collection",
-            choices=collection_list(),
-            multiple=False,
-            selectize=True,
-        )
+        return views.create_collection_select(choices=collection_list())
 
     @render.ui
     def title_handler():
@@ -274,7 +262,11 @@ def server(input: Inputs, output: Outputs, session: Session):
                     collection_name=input.collection(),
                 )
                 chain.set(
-                    create_chain(ollama_model_name=input.model(), retriever=retriever)
+                    create_chain(
+                        ollama_model_name=input.model(),
+                        retriever=retriever,
+                        temperature=input.llm_temp(),
+                    )
                 )
 
                 time.sleep(2)

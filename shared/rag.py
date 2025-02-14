@@ -83,9 +83,14 @@ def validate_splitter_args(arg: Any):
     return isinstance(arg, int) and arg > 0
 
 
-def create_chain(ollama_model_name: str, retriever: VectorStoreRetriever) -> Runnable:
+def create_chain(
+    ollama_model_name: str,
+    retriever: VectorStoreRetriever,
+    temperature: float,
+) -> Runnable:
     # TODO: add more params like temperature, etc; this will also in the ui
-    llm = ChatOllama(model=ollama_model_name)
+
+    llm = ChatOllama(model=ollama_model_name, temperature=temperature)
 
     contextualize_q_system_prompt = (
         "Given a chat history and the latest user question "

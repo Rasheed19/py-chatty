@@ -28,5 +28,6 @@ class MessageFormat(StrEnum):
 OLLAMA_EMBEDDING_NAME = "nomic-embed-text"
 CHROMA_DB_PERSISTENT_DIR = "./db"
 NOTIFICATION_DURATION = 5
+DEFAULT_LLM_TEMPERATURE = 0.8
 
 type Error = str | None

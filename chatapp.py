@@ -1,19 +1,13 @@
 import ollama
 from shiny import App, Inputs, Outputs, Session, render, ui
 
-from shared.defns import MessageFormat, Model
+from shared import views
+from shared.defns import MessageFormat
 from shared.utils import stream_response
-from shared.views import restrict_width
 
 side_bar = ui.sidebar(
-    ui.input_select(
-        id="model",
-        label="Choose a model to use:",
-        choices=[m for m in Model],
-        selected=Model.LLAMA,
-        multiple=False,
-        selectize=True,
-    ),
+    views.create_llm_select(),
+    views.create_llm_temp_slider(),
     ui.input_dark_mode(mode="dark"),
     width=300,
     id="sidebar",
@@ -36,7 +30,7 @@ def server(input: Inputs, output: Outputs, session: Session):
 
     @render.ui
     def title_handler():
-        return restrict_width(
+        return views.restrict_width(
             ui.h1(
                 "Hey, I'm Chatapp! What can I help with?",
             ),
@@ -58,6 +52,7 @@ def server(input: Inputs, output: Outputs, session: Session):
             model=input.model(),
             messages=messages,
             stream=True,
+            options={"temperature": input.llm_temp()},
         )
 
         await chat.append_message_stream(stream_response(response))

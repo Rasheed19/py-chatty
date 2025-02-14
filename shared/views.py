@@ -1,7 +1,12 @@
 import faicons as fa
 from shiny import ui
 
-from shared.defns import DocSplitterDefaultArgs, FileType
+from shared.defns import (
+    DEFAULT_LLM_TEMPERATURE,
+    DocSplitterDefaultArgs,
+    FileType,
+    Model,
+)
 
 
 def restrict_width(
@@ -167,4 +172,54 @@ def create_help_pannel() -> ui.Tag:
             icon=fa.icon_svg("lightbulb"),
         ),
         open=False,
+    )
+
+
+def create_temp_slider() -> ui.Tag:
+    return ui.input_slider(
+        id="llm_temp",
+        label=(
+            "LLM temperature",
+            ui.br(),
+            ui.help_text(
+                "The temperature of the model. Increasing the temperature will make the model answer more creatively."
+            ),
+        ),
+        min=0.0,
+        max=1.0,
+        value=DEFAULT_LLM_TEMPERATURE,
+        ticks=False,
+    )
+
+
+def create_llm_select() -> ui.Tag:
+    return ui.input_select(
+        id="model",
+        label=(
+            "Choose a model to use",
+            ui.br(),
+            ui.help_text(
+                "The model to use for generating responses. You can always change this on the fly."
+            ),
+        ),
+        choices=[m for m in Model],
+        selected=Model.LLAMA,
+        multiple=False,
+        selectize=True,
+    )
+
+
+def create_collection_select(choices: list[str]) -> ui.Tag:
+    return ui.input_select(
+        id="collection",
+        label=(
+            "Choose or search collection",
+            ui.br(),
+            ui.help_text(
+                "The document collection to use for LLM context. You can always change this on the fly."
+            ),
+        ),
+        choices=choices,
+        multiple=False,
+        selectize=True,
     )
