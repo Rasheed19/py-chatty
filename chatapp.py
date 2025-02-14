@@ -7,7 +7,7 @@ from shared.utils import stream_response
 
 side_bar = ui.sidebar(
     views.create_llm_select(),
-    views.create_llm_temp_slider(),
+    views.create_temp_slider(),
     ui.input_dark_mode(mode="dark"),
     width=300,
     id="sidebar",
